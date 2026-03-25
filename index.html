@@ -282,8 +282,8 @@ const rarityColor = {
   A:'#ffd166',
   S:'#ff7ad9',
   SS:'#ff3b3b',
-  SSS:'#000000',
-  Ultimate:'#eeeeee'
+  SSS:'#9b00ff',
+  Ultimate:'#ffffff'
 };
 const weaponBase = {D:10, C:14, B:20, A:30, S:50, SS:81, SSS:150, Ultimate:250};
 const maxLv = {D:25, C:50, B:75, A:100, S:150, SS:200, SSS:200, Ultimate:200};
@@ -946,7 +946,7 @@ function renderFusionModal(){
         <div class="actions"></div>
       `;
       const actions = tile.querySelector('.actions');
-      if(need && count >= need && r !== 'SSS','Ultimate'){
+      if(need && count >= need && r !== 'SS' && r !== 'SSS' && r !== 'Ultimate'){
         const btn = document.createElement('button');
         btn.className = 'btn smallBtn';
         btn.textContent = '合成';
