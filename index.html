@@ -551,13 +551,29 @@ function addItem(listName, rarity, lv=0, autoEquip=false){
 
 function addDropFromEnemy(enemyType){
   let rarity = 'D';
-  if(enemyType === 'bot1') rarity = Math.random() < 0.5 ? 'D' : 'C';
-  else if(enemyType === 'bot2') rarity = Math.random() < 0.5 ? 'C' : 'B';
-  else if(enemyType === 'bot3') rarity = 'B';
-  else if(enemyType === 'boss') rarity = Math.random() < 0.15 ? 'A' : 'B';
+
+  if(enemyType === 'bot1'){
+    rarity = Math.random() < 0.5 ? 'D' : 'C';
+
+  }else if(enemyType === 'bot2'){
+    rarity = Math.random() < 0.5 ? 'C' : 'B';
+
+  }else if(enemyType === 'bot3'){
+    rarity = 'B';
+
+  }else if(enemyType === 'boss'){
+    rarity = Math.random() < 0.15 ? 'A' : 'B';
+
+  }else if(enemyType === 'Grandebot1'){
+    rarity = Math.random() < 0.95 ? 'A' : 'S';
+
+  }else if(enemyType === 'Grandebot2'){
+    rarity = Math.random() < 0.3 ? 'S' : 'A';
+  }
 
   const listName = randChoice(['weapons','helmets','armors','shields']);
   addItem(listName, rarity, 0, false);
+
   pushLog(`${categoryLabel(listName)} ${rarity} を入手`, 'good');
 }
 
