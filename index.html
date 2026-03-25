@@ -274,12 +274,21 @@ const shopGrid = document.getElementById('shopGrid');
 
 const SAVE_KEY = 'rpg_game_save_v9';
 
-const RARITIES = ['D','C','B','A','S'];
-const rarityColor = {D:'#9da7b6', C:'#68c7ff', B:'#8dffb3', A:'#ffd166', S:'#ff7ad9'};
-const weaponBase = {D:10, C:14, B:20, A:30, S:50};
-const maxLv = {D:25, C:50, B:75, A:100, S:150};
-const hpMult = {D:1.5, C:2, B:2.5, A:3, S:4};
-const shieldCut = {D:0.20, C:0.35, B:0.50, A:0.70, S:0.85};
+const RARITIES = ['D','C','B','A','S','SS','SSS','Ultimate'];
+const rarityColor = {
+  D:'#9da7b6',
+  C:'#68c7ff',
+  B:'#8dffb3',
+  A:'#ffd166',
+  S:'#ff7ad9',
+  SS:'#ff3b3b',
+  SSS:'#000000',
+  Ultimate:'#eeeeee'
+};
+const weaponBase = {D:10, C:14, B:20, A:30, S:50, SS:81, SSS:150, Ultimate:250};
+const maxLv = {D:25, C:50, B:75, A:100, S:150, SS:200, SSS:200, Ultimate:200};
+const hpMult = {D:1.5, C:2, B:2.5, A:3, S:4, SS:5, SSS:7, Ultimate:10};
+const shieldCut = {D:0.20, C:0.35, B:0.50, A:0.70, S:0.85, SS:0.90, SSS:0.95, Ultimate:0.98};
 
 const WORLD_WIDTH = 3000;
 const MAX_ENEMIES = 20;
@@ -292,6 +301,7 @@ const maps = [
   {name:'ボスの城', bg:['#2b2b2b','#0d0d12'], spawn:['bot1','bot2','bot3','boss'], zone:[0, WORLD_WIDTH]},
   {name:'Gムラムラ', bg:['#92904f','#91192c'], spawn:['Grandebot1','Grandebot2'], zone:[0, WORLD_WIDTH]},
   {name:'C=Forest', bg:['#00E9DD','#10f9eD'], spawn:['XPMachine','GMachine'], zone:[0, WORLD_WIDTH]},
+  {name:'GrandeCaladown', bg:['#dfdfdf','#eeffee'], spawn:['bot3','Grandebot2','Grandeboss'], zone:[0, WORLD_WIDTH]},
 ];
 
 const enemyData = {
@@ -303,6 +313,7 @@ const enemyData = {
   Grandebot2:{name:'Grandebot2', hp:9000000, dmg:450000, xp:364364, gold:50000, color:'#1c8214', speed:0.8},
   XPMachine:{name:'XPMachine', hp:15000000, dmg:10000, xp:500000, gold:1000, color:'#91fc88', speed:0.8},
   GMachine:{name:'GMachine', hp:40000000, dmg:4000, xp:3000, gold:200000, color:'#d0a900', speed:0.8},
+  Grandeboss:{name:'Grandeboss', hp:100000000, dmg:1000000, xp:2000000, gold:2000000, color:'#114514', speed:0.5},
 };
 
 function uid(){
@@ -570,6 +581,10 @@ function addDropFromEnemy(enemyType){
   }else if(enemyType === 'Grandebot2'){
     rarity = Math.random() < 0.3 ? 'S' : 'A';
   }
+  
+  }else if(enemyType === 'Grandeboss'){
+    rarity = Math.random() < 0.1 ? 'SS' : 'S';
+  }
 
   const listName = randChoice(['weapons','helmets','armors','shields']);
   addItem(listName, rarity, 0, false);
@@ -740,6 +755,7 @@ function fuseItems(listName, rarity){
     C: 4,
     B: 5,
     A: 7
+    S:10
   };
 
   const need = needMap[rarity];
@@ -914,7 +930,7 @@ function renderFusionModal(){
     {name:'盾', key:'shields'},
   ];
 
-  const needMap = { D: 3, C: 4, B: 5, A: 7 };
+  const needMap = { D: 3, C: 4, B: 5, A: 7, S: 10, };
 
   categories.forEach(cat => {
     RARITIES.forEach(r => {
@@ -930,7 +946,7 @@ function renderFusionModal(){
         <div class="actions"></div>
       `;
       const actions = tile.querySelector('.actions');
-      if(need && count >= need && r !== 'S'){
+      if(need && count >= need && r !== 'SSS','Ultimate'){
         const btn = document.createElement('button');
         btn.className = 'btn smallBtn';
         btn.textContent = '合成';
