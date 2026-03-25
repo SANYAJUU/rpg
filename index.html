@@ -1221,7 +1221,7 @@ function updateKeyboardAndModalToggle(e){
   if(mapModal.style.display === 'flex' && !isNaN(e.key)){
   const index = Number(e.key) - 1;
   if(index >= 0 && index < maps.length) setMap(index);
-} setMap(Number(e.key) - 1);
+}
 }
 
 window.addEventListener('keydown', (e)=>{
