@@ -955,27 +955,56 @@ function renderShopModal(){
 
 function beginGame(){
   syncEquipment();
-  if(!Array.isArray(state.enemies) || state.enemies.length === 0){
+
+  const map = maps[state.mapIndex];
+
+  // 🔥 マップに合わない敵を削除（超重要）
+  state.enemies = (state.enemies || [])
+    .map(normalizeEnemy)
+    .filter(e => e && map.spawn.includes(e.type));
+
+  // 敵がいなかったら新しく生成
+  if(state.enemies.length === 0){
     state.enemies = spawnMapEnemies(state.mapIndex, MAX_ENEMIES);
-  }else{
-    state.enemies = state.enemies.map(normalizeEnemy).filter(Boolean);
   }
+
+  // マップ番号が壊れてた場合の保険
   if(state.mapIndex >= maps.length){
     state.mapIndex = 0;
   }
 
-  const map = maps[state.mapIndex];
+  // プレイヤー位置調整
   const zone = map.zone;
-  state.player.x = clamp(state.player.x || (WORLD_WIDTH / 2), zone[0] + 20, zone[1] - 20);
-  state.player.y = clamp(state.player.y || 540, 220, 560);
-  state.cameraX = clamp(state.player.x - window.innerWidth / 2, 0, WORLD_WIDTH - window.innerWidth);
+  state.player.x = clamp(
+    state.player.x || (WORLD_WIDTH / 2),
+    zone[0] + 20,
+    zone[1] - 20
+  );
+  state.player.y = clamp(
+    state.player.y || 540,
+    220,
+    560
+  );
+
+  // カメラ位置
+  state.cameraX = clamp(
+    state.player.x - window.innerWidth / 2,
+    0,
+    WORLD_WIDTH - window.innerWidth
+  );
+
   recalcStats();
+
+  // UI更新
   renderMapModal();
   renderFusionModal();
   renderShopModal();
   renderInventoryModal();
   renderHUD();
+
   centerMsg.style.display = 'none';
+
+  // ループ開始
   requestAnimationFrame(loop);
 }
 
@@ -1092,9 +1121,7 @@ function update(dt){
 
     const currentMap = maps[state.mapIndex] || maps[0];
 
-    const type = state.mapIndex === 3
-      ? randChoice(currentMap.spawn)
-      : currentMap.spawn[0];
+    const type = randChoice(currentMap.spawn);
 
     let x = randRange(60, WORLD_WIDTH - 60);
     let y = randRange(240, 560);
