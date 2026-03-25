@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RPG</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --panel:rgba(10,14,26,.88);
+    --text:#eef3ff;
+    --muted:#aeb8d8;
+    --good:#6ee7a8;
+    --warn:#ffd166;
+    --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;width:100%;height:100%;overflow:hidden;
+    background:radial-gradient(circle at top,#151d39 0%,var(--bg) 60%);
+    color:var(--text);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+  }
+  canvas{display:block;width:100vw;height:100vh}
+  .hud{position:fixed;inset:0;pointer-events:none}
+  .card{
+    position:absolute;background:var(--panel);
+    border:1px solid rgba(122,162,255,.2);
+    border-radius:18px;
+    backdrop-filter:blur(10px);
+    box-shadow:0 12px 30px rgba(0,0,0,.35)
+  }
+  .topbar{
+    left:12px;top:12px;display:flex;gap:10px;flex-wrap:wrap;
+    padding:10px 12px;max-width:min(100vw - 24px, 1100px)
+  }
+  .pill{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:999px;
+    padding:7px 10px;
+    font-size:13px;
+    white-space:nowrap
+  }
+  .pill b{color:#fff}
+  .sidebar{
+    position:absolute;top:92px;left:12px;width:280px;
+    max-height:calc(100vh - 104px);
+    display:flex;flex-direction:column;gap:10px;pointer-events:auto
+  }
+  .section{
+    background:var(--panel);
+    border:1px solid rgba(122,162,255,.2);
+    border-radius:18px;padding:12px;
+    box-shadow:0 12px 30px rgba(0,0,0,.28)
+  }
+  .section h3{margin:0 0 8px;font-size:15px}
+  .small{color:var(--muted);font-size:12px;line-height:1.5}
+  .grid{display:grid;gap:8px}
+  .btn{
+    appearance:none;border:none;border-radius:12px;
+    padding:10px 12px;background:#19213d;color:var(--text);
+    border:1px solid rgba(255,255,255,.08);
+    cursor:pointer;font:inherit;
+    transition:.15s transform,.15s background,.15s border-color
+  }
+  .btn:hover{transform:translateY(-1px);background:#213056;border-color:rgba(122,162,255,.3)}
+  .btn:active{transform:translateY(0)}
+  .btn.smallBtn{padding:8px 10px;font-size:13px}
+  .tag{
+    display:inline-flex;align-items:center;gap:6px;
+    border-radius:999px;padding:5px 9px;font-size:12px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07)
+  }
+  .tag .dot{width:8px;height:8px;border-radius:50%}
+  .hint{
+    position:absolute;left:310px;bottom:12px;
+    background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;padding:10px 12px;color:var(--muted);
+    font-size:12px;line-height:1.55;max-width:min(760px, calc(100vw - 322px));
+    pointer-events:none
+  }
+  .modalMask{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);
+    display:none;align-items:center;justify-content:center;pointer-events:auto
+  }
+  .modal{
+    width:min(720px, calc(100vw - 24px));
+    max-height:min(82vh, 820px);
+    overflow:auto;
+    background:rgba(12,16,30,.96);
+    border:1px solid rgba(122,162,255,.25);
+    border-radius:22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+    padding:18px
+  }
+  .modal.big{width:min(980px, calc(100vw - 24px));height:min(82vh, 820px)}
+  .modal header{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px
+  }
+  .modal h2{margin:0;font-size:18px}
+  .modal .desc{color:var(--muted);font-size:13px;line-height:1.5;margin-top:4px}
+  .modalGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .modalGrid.large{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .tile{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;padding:12px
+  }
+  .tile .title{font-weight:700;margin-bottom:4px}
+  .tile .sub{color:var(--muted);font-size:12px;line-height:1.45}
+  .tile .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .closeBtn{
+    border:none;background:#233253;color:#fff;border-radius:12px;padding:10px 12px;cursor:pointer
+  }
+  .closeBtn:hover{background:#30426d}
+  .worldInfo{
+    position:absolute;right:12px;top:12px;
+    display:flex;flex-direction:column;gap:10px;pointer-events:none
+  }
+  .rightCard{padding:10px 12px;min-width:280px}
+  .rightCard h4{margin:0 0 8px;font-size:14px}
+  .hpbar{
+    height:12px;background:rgba(255,255,255,.08);
+    border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.08)
+  }
+  .hpbar > div{height:100%;background:linear-gradient(90deg,#6ee7a8,#c8ff7a)}
+  .enemyBar{background:rgba(255,255,255,.07)}
+  .log{max-height:160px;overflow:auto;color:#d8e1ff;font-size:12px;line-height:1.5}
+  .log .entry{padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+  .kbd{
+    display:inline-block;padding:1px 6px;border-radius:6px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.05);font-size:11px;color:#fff
+  }
+  .invGroup{display:flex;flex-direction:column;gap:8px}
+  .equipCard{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);cursor:pointer
+  }
+  .equipCard:hover{background:rgba(122,162,255,.12)}
+  .equipCard.active{outline:2px solid rgba(122,162,255,.5);background:rgba(122,162,255,.16)}
+  .mini{font-size:12px;color:var(--muted)}
+  .centerMsg{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    pointer-events:none;color:#fff;font-size:16px;letter-spacing:.06em;
+    text-shadow:0 2px 12px rgba(0,0,0,.75)
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="centerMsg" id="centerMsg">読み込み中...</div>
+
+<div class="hud">
+  <div class="card topbar" id="topbar"></div>
+
+  <div class="sidebar">
+    <div class="section">
+      <h3>メニュー</h3>
+      <div class="small">同じキーで開閉できる。</div>
+      <div style="height:10px"></div>
+      <div class="grid">
+        <button class="btn smallBtn" id="openInvBtn">I インベントリ</button>
+        <button class="btn smallBtn" id="openMapBtn">M マップ</button>
+        <button class="btn smallBtn" id="openFusionBtn">T 合成</button>
+        <button class="btn smallBtn" id="openShopBtn">Y ショップ</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>ログ</h3>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <div class="worldInfo">
+    <div class="card rightCard">
+      <h4>プレイヤー</h4>
+      <div class="mini" id="playerLine"></div>
+      <div style="height:8px"></div>
+      <div class="hpbar"><div id="playerHpBar" style="width:100%"></div></div>
+      <div class="mini" id="playerHpText" style="margin-top:6px"></div>
+    </div>
+    <div class="card rightCard">
+      <h4>現在の敵</h4>
+      <div class="mini" id="enemyLine">なし</div>
+      <div style="height:8px"></div>
+      <div class="hpbar enemyBar"><div id="enemyHpBar" style="width:0%"></div></div>
+      <div class="mini" id="enemyHpText" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="hint">
+    操作: <span class="kbd">WASD</span> 移動、<span class="kbd">I</span> インベントリ、<span class="kbd">M</span> マップ、<span class="kbd">T</span> 合成、<span class="kbd">Y</span> ショップ。<br>
+    止まっているときだけ回復。戦闘中は止まり、敵はマップ内をランダム移動する。
+  </div>
+</div>
+
+<div class="modalMask" id="inventoryModal">
+  <div class="modal big">
+    <header>
+      <div>
+        <h2>インベントリ</h2>
+        <div class="desc">中央に大きく表示。武器・兜・鎧・盾だけをまとめて表示する。</div>
+      </div>
+      <button class="closeBtn" data-close="inventoryModal">閉じる</button>
+    </header>
+    <div class="modalGrid large" id="inventoryGrid"></div>
+  </div>
+</div>
+
+<div class="modalMask" id="mapModal">
+  <div class="modal">
+    <header>
+      <div>
+        <h2>マップ</h2>
+        <div class="desc">移動</div>
+      </div>
+      <button class="closeBtn" data-close="mapModal">閉じる</button>
+    </header>
+    <div class="modalGrid" id="mapGrid"></div>
+  </div>
+</div>
+
+<div class="modalMask" id="fusionModal">
+  <div class="modal">
+    <header>
+      <div>
+        <h2>合成</h2>
+        <div class="desc">同じ種類・同じレア度のアイテムを必要数集めて、上のレアに合成。</div>
+      </div>
+      <button class="closeBtn" data-close="fusionModal">閉じる</button>
+    </header>
+    <div class="modalGrid" id="fusionGrid"></div>
+  </div>
+</div>
+
+<div class="modalMask" id="shopModal">
+  <div class="modal">
+    <header>
+      <div>
+        <h2>ショップ</h2>
+        <div class="desc">武器・兜・鎧・盾を直接購入できる。</div>
+      </div>
+      <button class="closeBtn" data-close="shopModal">閉じる</button>
+    </header>
+    <div class="modalGrid" id="shopGrid"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const centerMsg = document.getElementById('centerMsg');
+const topbar = document.getElementById('topbar');
+const logEl = document.getElementById('log');
+const playerLine = document.getElementById('playerLine');
+const playerHpBar = document.getElementById('playerHpBar');
+const playerHpText = document.getElementById('playerHpText');
+const enemyLine = document.getElementById('enemyLine');
+const enemyHpBar = document.getElementById('enemyHpBar');
+const enemyHpText = document.getElementById('enemyHpText');
+const inventoryModal = document.getElementById('inventoryModal');
+const mapModal = document.getElementById('mapModal');
+const fusionModal = document.getElementById('fusionModal');
+const shopModal = document.getElementById('shopModal');
+const inventoryGrid = document.getElementById('inventoryGrid');
+const mapGrid = document.getElementById('mapGrid');
+const fusionGrid = document.getElementById('fusionGrid');
+const shopGrid = document.getElementById('shopGrid');
+
+const SAVE_KEY = 'rpg_game_save_v9';
+
+const RARITIES = ['D','C','B','A','S'];
+const rarityColor = {D:'#9da7b6', C:'#68c7ff', B:'#8dffb3', A:'#ffd166', S:'#ff7ad9'};
+const weaponBase = {D:10, C:14, B:20, A:30, S:50};
+const maxLv = {D:25, C:50, B:75, A:100, S:150};
+const hpMult = {D:1.5, C:2, B:2.5, A:3, S:4};
+const shieldCut = {D:0.20, C:0.35, B:0.50, A:0.70, S:0.85};
+
+const WORLD_WIDTH = 5000;
+const MAX_ENEMIES = 20;
+const SPAWN_INTERVAL = 1500;
+
+const maps = [
+  {name:'ムラ1', bg:['#22304f','#11182c'], spawn:['bot1'], zone:[0, WORLD_WIDTH]},
+  {name:'ムラ2', bg:['#4f361f','#1f1820'], spawn:['bot2'], zone:[0, WORLD_WIDTH]},
+  {name:'ムラ3', bg:['#4f1f1f','#200f13'], spawn:['bot3'], zone:[0, WORLD_WIDTH]},
+  {name:'ボスの城', bg:['#2b2b2b','#0d0d12'], spawn:['bot1','bot2','bot3','boss'], zone:[0, WORLD_WIDTH]},
+];
+
+const enemyData = {
+  bot1:{name:'bot1', hp:3000, dmg:100, xp:100, gold:100, color:'#f5f5f5', speed:1.3},
+  bot2:{name:'bot2', hp:50000, dmg:300, xp:2000, gold:500, color:'#ff9f1c', speed:1.0},
+  bot3:{name:'bot3', hp:200000, dmg:1000, xp:10000, gold:2000, color:'#ff3b3b', speed:0.8},
+  boss:{name:'boss', hp:3000000, dmg:10000, xp:114514, gold:10000, color:'#050505', speed:0.62},
+};
+
+function uid(){
+  return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+}
+function makeItem(rarity, lv = 0){
+  return { id: uid(), rarity, lv };
+}
+function normalizeItem(item){
+  if(!item || !item.rarity) return makeItem('D', 0);
+  return {
+    id: item.id || uid(),
+    rarity: RARITIES.includes(item.rarity) ? item.rarity : 'D',
+    lv: Math.max(0, Math.floor(item.lv ?? 0)),
+  };
+}
+function normalizeList(list){
+  return Array.isArray(list) ? list.map(normalizeItem) : [];
+}
+function formatNumber(num){
+  if(!Number.isFinite(num)) return '0';
+  const sign = num < 0 ? '-' : '';
+  num = Math.abs(num);
+  if(num < 1000) return sign + String(Math.floor(num));
+  const units = ['k','m','b','t'];
+  let unitIndex = -1;
+  while(num >= 1000 && unitIndex < units.length - 1){
+    num /= 1000;
+    unitIndex++;
+  }
+  return sign + num.toFixed(1).replace(/\.0$/,'') + units[unitIndex];
+}
+function formatBig(num){
+  return String(formatNumber(num)).toUpperCase();
+}
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function randRange(min, max){ return min + Math.random() * (max - min); }
+function randChoice(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+function openModal(el){ el.style.display = 'flex'; }
+function closeModal(el){ el.style.display = 'none'; }
+function toggleModal(el, renderFn){
+  if(el.style.display === 'flex') closeModal(el);
+  else { if(renderFn) renderFn(); openModal(el); }
+}
+function categoryLabel(listName){
+  return {weapons:'武器', helmets:'兜', armors:'鎧', shields:'盾'}[listName] || listName;
+}
+function equipKeyFromList(listName){
+  return {weapons:'weapon', helmets:'helmet', armors:'armor', shields:'shield'}[listName] || null;
+}
+
+const defaultState = () => ({
+  mapIndex: 0,
+  cameraX: 0,
+  keys: {},
+  player: {
+    x: 400, y: 540, w: 34, h: 52,
+    lv: 1, xp: 0, gold: 0,
+    hp: 10000, maxHp: 10000, baseHp: 10000, baseDmg: 100, dmg: 100,
+    speed: 4.5, attackInterval: 250, attackTimer: 0, invuln: 0, facing: 1
+  },
+  equipment: {weapon:null, helmet:null, armor:null, shield:null},
+  weapons: [makeItem('D', 0)],
+  helmets: [makeItem('D', 0)],
+  armors: [makeItem('D', 0)],
+  shields: [makeItem('D', 0)],
+  enemies: [],
+  activeEnemyId: null,
+  lastTime: performance.now(),
+  spawnTimer: 0,
+  damageTexts: [],
+  log: [],
+});
+
+let state = defaultState();
+let saveDirty = true;
+
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+function pushLog(text, type=''){
+  state.log.unshift({text, type});
+  state.log = state.log.slice(0, 24);
+  saveDirty = true;
+}
+
+function syncEquipment(){
+  if(state.equipment.weapon && !state.weapons.includes(state.equipment.weapon)) state.equipment.weapon = state.weapons[0] || null;
+  if(state.equipment.helmet && !state.helmets.includes(state.equipment.helmet)) state.equipment.helmet = state.helmets[0] || null;
+  if(state.equipment.armor && !state.armors.includes(state.equipment.armor)) state.equipment.armor = state.armors[0] || null;
+  if(state.equipment.shield && !state.shields.includes(state.equipment.shield)) state.equipment.shield = state.shields[0] || null;
+
+  if(!state.equipment.weapon) state.equipment.weapon = state.weapons[0] || null;
+  if(!state.equipment.helmet) state.equipment.helmet = state.helmets[0] || null;
+  if(!state.equipment.armor) state.equipment.armor = state.armors[0] || null;
+  if(!state.equipment.shield) state.equipment.shield = state.shields[0] || null;
+}
+
+function normalizeEnemy(e){
+  const base = enemyData[e?.type];
+  if(!base) return null;
+  return {
+    id: e.id || uid(),
+    type: e.type,
+    name: base.name,
+    x: Number(e.x ?? 0),
+    y: Number(e.y ?? 0),
+    w: Number(e.w ?? 28),
+    h: Number(e.h ?? 28),
+    hp: Math.max(0, Number(e.hp ?? base.hp)),
+    maxHp: Math.max(1, Number(e.maxHp ?? base.hp)),
+    dmg: Number(e.dmg ?? base.dmg),
+    xp: Number(e.xp ?? base.xp),
+    gold: Number(e.gold ?? base.gold),
+    color: e.color || base.color,
+    speed: Number(e.speed ?? base.speed),
+    vx: Number(e.vx ?? 0),
+    vy: Number(e.vy ?? 0),
+    targetX: Number(e.targetX ?? e.x ?? 0),
+    targetY: Number(e.targetY ?? e.y ?? 0),
+    wanderTimer: Number(e.wanderTimer ?? 0),
+    attackTimer: Number(e.attackTimer ?? 0),
+    deadTimer: Number(e.deadTimer ?? 0),
+    zone: Array.isArray(e.zone) ? e.zone : [0, WORLD_WIDTH],
+    alive: e.alive !== false,
+    locked: false,
+    flash: 0,
+  };
+}
+
+function saveGame(){
+  try{
+    const data = {
+      mapIndex: state.mapIndex,
+      cameraX: state.cameraX,
+      player: state.player,
+      weapons: state.weapons,
+      helmets: state.helmets,
+      armors: state.armors,
+      shields: state.shields,
+      equipment: {
+        weaponId: state.equipment.weapon?.id || null,
+        helmetId: state.equipment.helmet?.id || null,
+        armorId: state.equipment.armor?.id || null,
+        shieldId: state.equipment.shield?.id || null,
+      },
+      enemies: state.enemies,
+      spawnTimer: state.spawnTimer,
+      log: state.log,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    saveDirty = false;
+  }catch(err){
+    console.warn('save failed', err);
+  }
+}
+
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const parsed = JSON.parse(raw);
+
+    state.mapIndex = clamp(Number(parsed.mapIndex ?? 0), 0, 3);
+    state.cameraX = Number(parsed.cameraX ?? 0);
+    if(parsed.player && typeof parsed.player === 'object') Object.assign(state.player, parsed.player);
+
+    state.weapons = normalizeList(parsed.weapons) || state.weapons;
+    state.helmets = normalizeList(parsed.helmets) || state.helmets;
+    state.armors = normalizeList(parsed.armors) || state.armors;
+    state.shields = normalizeList(parsed.shields) || state.shields;
+
+    state.equipment.weapon = state.weapons.find(i => i.id === parsed.equipment?.weaponId) || null;
+    state.equipment.helmet = state.helmets.find(i => i.id === parsed.equipment?.helmetId) || null;
+    state.equipment.armor = state.armors.find(i => i.id === parsed.equipment?.armorId) || null;
+    state.equipment.shield = state.shields.find(i => i.id === parsed.equipment?.shieldId) || null;
+
+    state.enemies = Array.isArray(parsed.enemies)
+      ? parsed.enemies.map(normalizeEnemy).filter(Boolean)
+      : [];
+
+    state.spawnTimer = Number(parsed.spawnTimer ?? 0);
+    state.log = Array.isArray(parsed.log) ? parsed.log.slice(0,24) : [];
+
+    syncEquipment();
+    recalcStats();
+    return true;
+  }catch(err){
+    console.warn('load failed', err);
+    state = defaultState();
+    return false;
+  }
+}
+
+function equipItem(listName, item){
+  state.equipment[equipKeyFromList(listName)] = item;
+  recalcStats();
+  renderHUD();
+  renderInventoryModal();
+}
+
+function itemUpgradeCost(item){
+  const rarityIndex = RARITIES.indexOf(item.rarity);
+  const base = 100 * (rarityIndex + 1);
+  return Math.floor(base * Math.pow(1.45, item.lv));
+}
+
+function upgradeItem(listName, item){
+  const max = maxLv[item.rarity];
+  if(item.lv >= max){
+    pushLog('最大レベルです', 'warn');
+    return;
+  }
+  const cost = itemUpgradeCost(item);
+  if(state.player.gold < cost){
+    pushLog('お金が足りない', 'bad');
+    return;
+  }
+  state.player.gold -= cost;
+  item.lv++;
+  pushLog(`${categoryLabel(listName)} ${item.rarity} Lv${item.lv} に強化！ (-${formatBig(cost)}G)`, 'good');
+  recalcStats();
+  saveDirty = true;
+  renderHUD();
+  renderInventoryModal();
+}
+
+function addItem(listName, rarity, lv=0, autoEquip=false){
+  const item = makeItem(rarity, lv);
+  state[listName].push(item);
+  if(autoEquip || !state.equipment[equipKeyFromList(listName)]){
+    state.equipment[equipKeyFromList(listName)] = item;
+  }
+  recalcStats();
+  saveDirty = true;
+  return item;
+}
+
+function addDropFromEnemy(enemyType){
+  let rarity = 'D';
+  if(enemyType === 'bot1') rarity = Math.random() < 0.5 ? 'D' : 'C';
+  else if(enemyType === 'bot2') rarity = Math.random() < 0.5 ? 'C' : 'B';
+  else if(enemyType === 'bot3') rarity = 'B';
+  else if(enemyType === 'boss') rarity = Math.random() < 0.15 ? 'A' : 'B';
+
+  const listName = randChoice(['weapons','helmets','armors','shields']);
+  addItem(listName, rarity, 0, false);
+  pushLog(`${categoryLabel(listName)} ${rarity} を入手`, 'good');
+}
+
+function addShopItem(listName, rarity, price){
+  if(state.player.gold < price){
+    pushLog('お金が足りない', 'bad');
+    return;
+  }
+  state.player.gold -= price;
+  addItem(listName, rarity, 0, false);
+  pushLog(`${categoryLabel(listName)} ${rarity} を購入`, 'good');
+  renderHUD();
+  renderInventoryModal();
+  renderShopModal();
+}
+
+function recalcStats(){
+  const p = state.player;
+  p.baseHp = 10000 * p.lv;
+  p.baseDmg = 100 * p.lv;
+
+  let hpRate = 1;
+  if(state.equipment.helmet){
+    const h = state.equipment.helmet;
+    hpRate *= hpMult[h.rarity] * (1 + 0.03 * h.lv);
+  }
+  if(state.equipment.armor){
+    const a = state.equipment.armor;
+    hpRate *= hpMult[a.rarity] * (1 + 0.03 * a.lv);
+  }
+  p.maxHp = Math.floor(p.baseHp * hpRate);
+  p.hp = Math.min(p.hp, p.maxHp);
+
+  let dmgRate = 1;
+  if(state.equipment.weapon){
+    const w = state.equipment.weapon;
+    dmgRate = weaponBase[w.rarity] * (1 + w.lv * 0.04);
+  }
+  p.dmg = Math.floor(p.baseDmg * dmgRate);
+  saveDirty = true;
+}
+
+function getDamageTaken(raw){
+  let cut = 0;
+  if(state.equipment.shield){
+    const s = state.equipment.shield;
+    cut = shieldCut[s.rarity] + s.lv * 0.01;
+  }
+  cut = Math.min(cut, 0.9);
+  return Math.max(1, Math.floor(raw * (1 - cut)));
+}
+
+function spawnDamageText(x, y, value, isCrit=false){
+  state.damageTexts.push({
+    x, y, value, isCrit,
+    life: 800,
+    vy: -0.5,
+  });
+}
+
+function spawnEnemy(type, x, y){
+  const base = enemyData[type];
+  const w = type === 'boss' ? 54 : type === 'bot3' ? 40 : type === 'bot2' ? 34 : 28;
+  const h = w;
+  return {
+    id: uid(),
+    type,
+    name: base.name,
+    x, y, w, h,
+    hp: base.hp,
+    maxHp: base.hp,
+    dmg: base.dmg,
+    xp: base.xp,
+    gold: base.gold,
+    color: base.color,
+    speed: base.speed,
+    vx: (Math.random() * 2 - 1) * base.speed,
+    vy: (Math.random() * 2 - 1) * base.speed,
+    targetX: x,
+    targetY: y,
+    wanderTimer: 0,
+    attackTimer: 0,
+    deadTimer: 0,
+    zone: [0, WORLD_WIDTH],
+    alive: true,
+    locked: false,
+    flash: 0,
+  };
+}
+
+function spawnMapEnemies(index, count = MAX_ENEMIES){
+  const arr = [];
+  const map = maps[index];
+  for(let i=0;i<count;i++){
+    const type = index === 3 ? randChoice(map.spawn) : map.spawn[0];
+    let x = randRange(120, WORLD_WIDTH - 120);
+    let y = randRange(260, 560);
+    if(Math.abs(x - state.player.x) < 180) x = clamp(x + 240, 120, WORLD_WIDTH - 120);
+    arr.push(spawnEnemy(type, x, y));
+  }
+  return arr;
+}
+
+function setMap(index){
+  state.mapIndex = index;
+  state.enemies = spawnMapEnemies(index, MAX_ENEMIES);
+  state.activeEnemyId = null;
+  state.spawnTimer = 0;
+  state.player.x = WORLD_WIDTH / 2;
+  state.player.y = 540;
+  state.cameraX = clamp(state.player.x - window.innerWidth / 2, 0, WORLD_WIDTH - window.innerWidth);
+  closeModal(mapModal);
+  pushLog(`移動: ${maps[index].name}`, 'good');
+  renderHUD();
+}
+
+function startBattle(enemy){
+  state.activeEnemyId = enemy.id;
+  state.player.attackTimer = 0;
+  enemy.attackTimer = 0;
+  enemy.locked = true;
+  state.player.facing = enemy.x >= state.player.x ? 1 : -1;
+  pushLog(`戦闘開始: ${enemy.name}`, 'warn');
+}
+
+function endBattle(enemy, defeated=false){
+  if(enemy) enemy.locked = false;
+  state.activeEnemyId = null;
+  state.player.attackTimer = 0;
+
+  if(defeated){
+    state.player.gold += enemy.gold;
+    state.player.xp += enemy.xp;
+    pushLog(`${enemy.name} を倒した！ +${formatBig(enemy.gold)}G +${formatBig(enemy.xp)}XP`, 'good');
+    addDropFromEnemy(enemy.type);
+    levelCheck();
+    state.enemies = state.enemies.filter(e => e.id !== enemy.id);
+    state.spawnTimer = SPAWN_INTERVAL;
+  }
+  saveDirty = true;
+  renderHUD();
+}
+
+function levelCheck(){
+  while(state.player.xp >= state.player.lv * 100){
+    state.player.xp -= state.player.lv * 100;
+    state.player.lv++;
+    pushLog(`レベルアップ！ Lv${state.player.lv}`, 'good');
+  }
+  recalcStats();
+}
+
+function syncEquipmentAfterListChange(listName){
+  const key = equipKeyFromList(listName);
+  if(!state.equipment[key]) state.equipment[key] = state[listName][0] || null;
+  if(state.equipment[key] && !state[listName].includes(state.equipment[key])) state.equipment[key] = state[listName][0] || null;
+}
+
+function fuseItems(listName, rarity){
+  const list = state[listName];
+
+  const needMap = {
+    D: 3,
+    C: 4,
+    B: 5,
+    A: 7
+  };
+
+  const need = needMap[rarity];
+  if(!need){
+    pushLog('これ以上合成できない', 'warn');
+    return;
+  }
+
+  const same = list.filter(i => i.rarity === rarity);
+  if(same.length < need){
+    pushLog(`同じアイテムが${need}個必要`, 'bad');
+    return;
+  }
+
+  let removed = 0;
+  state[listName] = list.filter(i => {
+    if(i.rarity === rarity && removed < need){
+      removed++;
+      return false;
+    }
+    return true;
+  });
+
+  const next = RARITIES[RARITIES.indexOf(rarity) + 1];
+  state[listName].push(makeItem(next, 0));
+
+  syncEquipmentAfterListChange(listName);
+  recalcStats();
+  saveDirty = true;
+  pushLog(`${categoryLabel(listName)} ${rarity} ×${need} → ${next} に合成`, 'good');
+
+  renderInventoryModal();
+  renderFusionModal();
+  renderHUD();
+}
+
+function renderHUD(){
+  const p = state.player;
+  const mapName = maps[state.mapIndex].name;
+  topbar.innerHTML = `
+    <div class="pill">MAP <b>${mapName}</b></div>
+    <div class="pill">Lv <b>${p.lv}</b></div>
+    <div class="pill">HP <b>${formatBig(p.hp)} / ${formatBig(p.maxHp)}</b></div>
+    <div class="pill">DMG <b>${formatBig(p.dmg)}</b></div>
+    <div class="pill">XP <b>${formatBig(p.xp)} / ${formatBig(p.lv * 100)}</b></div>
+    <div class="pill">Gold <b>${formatBig(p.gold)}</b></div>
+    <div class="pill">武器 <b>${pWeaponText()}</b></div>
+    <div class="pill">兜 <b>${pHelmetText()}</b></div>
+    <div class="pill">鎧 <b>${pArmorText()}</b></div>
+    <div class="pill">盾 <b>${pShieldText()}</b></div>
+  `;
+
+  playerLine.textContent = `Lv${p.lv} / Gold ${formatBig(p.gold)} / MAP ${mapName}`;
+  playerHpBar.style.width = `${Math.max(0, Math.min(100, (p.hp / p.maxHp) * 100))}%`;
+  playerHpText.textContent = `HP ${formatBig(p.hp)} / ${formatBig(p.maxHp)}  |  XP ${formatBig(p.xp)} / ${formatBig(p.lv * 100)}`;
+
+  const active = state.enemies.find(e => e.id === state.activeEnemyId) || null;
+  if(active){
+    enemyLine.textContent = `${active.name}  |  DMG ${formatBig(active.dmg)}  |  GOLD ${formatBig(active.gold)}  |  XP ${formatBig(active.xp)}`;
+    enemyHpBar.style.width = `${Math.max(0, Math.min(100, (active.hp / active.maxHp) * 100))}%`;
+    enemyHpText.textContent = `HP ${formatBig(active.hp)} / ${formatBig(active.maxHp)}`;
+  }else{
+    enemyLine.textContent = 'なし';
+    enemyHpBar.style.width = '0%';
+    enemyHpText.textContent = '';
+  }
+
+  logEl.innerHTML = state.log.map(l => `
+    <div class="entry" style="color:${
+      l.type === 'good' ? 'var(--good)' :
+      l.type === 'warn' ? 'var(--warn)' :
+      l.type === 'bad' ? 'var(--bad)' : '#d8e1ff'
+    }">${l.text}</div>
+  `).join('');
+}
+
+function pWeaponText(){ return state.equipment.weapon ? `${state.equipment.weapon.rarity} Lv${state.equipment.weapon.lv}` : 'なし'; }
+function pHelmetText(){ return state.equipment.helmet ? `${state.equipment.helmet.rarity} Lv${state.equipment.helmet.lv}` : 'なし'; }
+function pArmorText(){ return state.equipment.armor ? `${state.equipment.armor.rarity} Lv${state.equipment.armor.lv}` : 'なし'; }
+function pShieldText(){ return state.equipment.shield ? `${state.equipment.shield.rarity} Lv${state.equipment.shield.lv}` : 'なし'; }
+
+function itemStatText(listName, item){
+  const r = item.rarity;
+  if(listName === 'weapons'){
+    return `DMG倍率 ${(weaponBase[r] * (1 + item.lv * 0.04)).toFixed(2)}x`;
+  }
+  if(listName === 'helmets' || listName === 'armors'){
+    return `HP倍率 ${(hpMult[r] * (1 + item.lv * 0.03)).toFixed(2)}x`;
+  }
+  if(listName === 'shields'){
+    return `被ダメ ${(Math.round(Math.min(shieldCut[r] + item.lv * 0.01, 0.9) * 100))}%カット`;
+  }
+  return '';
+}
+
+function renderInventoryModal(){
+  inventoryGrid.innerHTML = '';
+  const sections = [
+    {title:'武器', listName:'weapons'},
+    {title:'兜', listName:'helmets'},
+    {title:'鎧', listName:'armors'},
+    {title:'盾', listName:'shields'},
+  ];
+
+  sections.forEach(section => {
+    const list = state[section.listName];
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = `<div class="title">${section.title}</div><div class="sub">装備・強化の対象</div><div style="height:10px"></div><div class="invGroup"></div>`;
+    const group = tile.querySelector('.invGroup');
+
+    if(!list.length){
+      const empty = document.createElement('div');
+      empty.className = 'small';
+      empty.textContent = 'なし';
+      group.appendChild(empty);
+    }else{
+      list.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'equipCard' + (state.equipment[equipKeyFromList(section.listName)] === item ? ' active' : '');
+        row.innerHTML = `
+          <div>
+            <div><b>${item.rarity}</b> Lv${item.lv}</div>
+            <div class="mini">${itemStatText(section.listName, item)}</div>
+          </div>
+          <div class="actions" style="margin-top:0">
+            <button class="btn smallBtn btnEquip">装備</button>
+            <button class="btn smallBtn btnUp">強化</button>
+          </div>
+        `;
+        row.addEventListener('click', ()=>{
+          equipItem(section.listName, item);
+        });
+        row.querySelector('.btnEquip').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          equipItem(section.listName, item);
+        });
+        row.querySelector('.btnUp').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          upgradeItem(section.listName, item);
+        });
+        group.appendChild(row);
+      });
+    }
+
+    inventoryGrid.appendChild(tile);
+  });
+}
+
+function renderMapModal(){
+  mapGrid.innerHTML = '';
+  maps.forEach((m, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = `
+      <div class="title">${m.name} ${state.mapIndex === i ? '（現在）' : ''}</div>
+      <div class="sub">出現敵: ${m.spawn.join(' / ')}</div>
+      <div class="sub">歩きでは移動できない。ここから切り替え。</div>
+      <div class="actions"><button class="btn smallBtn">移動</button></div>
+    `;
+    tile.querySelector('button').addEventListener('click', ()=>setMap(i));
+    mapGrid.appendChild(tile);
+  });
+}
+
+function renderFusionModal(){
+  fusionGrid.innerHTML = '';
+  const categories = [
+    {name:'武器', key:'weapons'},
+    {name:'兜', key:'helmets'},
+    {name:'鎧', key:'armors'},
+    {name:'盾', key:'shields'},
+  ];
+
+  const needMap = { D: 3, C: 4, B: 5, A: 7 };
+
+  categories.forEach(cat => {
+    RARITIES.forEach(r => {
+      const count = state[cat.key].filter(i => i.rarity === r).length;
+      const need = needMap[r];
+
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.innerHTML = `
+        <div class="title">${cat.name} ${r}</div>
+        <div class="sub">所持: ${count}</div>
+        <div class="sub">必要: ${need ? need + '個' : '—'}</div>
+        <div class="actions"></div>
+      `;
+      const actions = tile.querySelector('.actions');
+      if(need && count >= need && r !== 'S'){
+        const btn = document.createElement('button');
+        btn.className = 'btn smallBtn';
+        btn.textContent = '合成';
+        btn.onclick = ()=>fuseItems(cat.key, r);
+        actions.appendChild(btn);
+      }else{
+        const txt = document.createElement('span');
+        txt.className = 'small';
+        txt.textContent = r === 'S' ? '最大レア' : '不足';
+        actions.appendChild(txt);
+      }
+      fusionGrid.appendChild(tile);
+    });
+  });
+}
+
+function renderShopModal(){
+  shopGrid.innerHTML = '';
+  const offers = [
+    ['weapons','D',200], ['weapons','C',600],
+    ['helmets','D',200], ['helmets','C',600],
+    ['armors','D',200], ['armors','C',600],
+    ['shields','D',200], ['shields','C',600],
+  ];
+  offers.forEach(([listName, rarity, price]) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.innerHTML = `
+      <div class="title">${categoryLabel(listName)} ${rarity}</div>
+      <div class="sub">価格: ${formatBig(price)}G</div>
+      <div class="sub">装備を直接購入</div>
+      <div class="actions"><button class="btn smallBtn">購入</button></div>
+    `;
+    tile.querySelector('button').addEventListener('click', ()=>addShopItem(listName, rarity, price));
+    shopGrid.appendChild(tile);
+  });
+}
+
+function beginGame(){
+  syncEquipment();
+  if(!Array.isArray(state.enemies) || state.enemies.length === 0){
+    state.enemies = spawnMapEnemies(state.mapIndex, MAX_ENEMIES);
+  }else{
+    state.enemies = state.enemies.map(normalizeEnemy).filter(Boolean);
+  }
+  const zone = maps[state.mapIndex].zone;
+  state.player.x = clamp(state.player.x || (WORLD_WIDTH / 2), zone[0] + 20, zone[1] - 20);
+  state.player.y = clamp(state.player.y || 540, 220, 560);
+  state.cameraX = clamp(state.player.x - window.innerWidth / 2, 0, WORLD_WIDTH - window.innerWidth);
+  recalcStats();
+  renderMapModal();
+  renderFusionModal();
+  renderShopModal();
+  renderInventoryModal();
+  renderHUD();
+  centerMsg.style.display = 'none';
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  const p = state.player;
+  const map = maps[state.mapIndex];
+  const leftBound = map.zone[0] + 20;
+  const rightBound = map.zone[1] - 20;
+
+  let dx = 0;
+  let dy = 0;
+
+  if(!state.activeEnemyId){
+    if(state.keys['w'] || state.keys['W'] || state.keys['ArrowUp']) dy -= 1;
+    if(state.keys['s'] || state.keys['S'] || state.keys['ArrowDown']) dy += 1;
+    if(state.keys['a'] || state.keys['A'] || state.keys['ArrowLeft']) dx -= 1;
+    if(state.keys['d'] || state.keys['D'] || state.keys['ArrowRight']) dx += 1;
+
+    if(dx !== 0 || dy !== 0){
+      const len = Math.hypot(dx, dy) || 1;
+      p.x += (dx / len) * p.speed * (dt / 16.666);
+      p.y += (dy / len) * p.speed * (dt / 16.666);
+      p.facing = dx >= 0 ? 1 : -1;
+    }else{
+      p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.03 * (dt / 1000));
+    }
+  }
+
+  p.x = clamp(p.x, leftBound, rightBound);
+  p.y = clamp(p.y, 220, 560);
+  p.invuln = Math.max(0, p.invuln - dt);
+  p.attackTimer += dt;
+  state.cameraX = clamp(p.x - window.innerWidth / 2, 0, WORLD_WIDTH - window.innerWidth);
+
+  for(const e of state.enemies){
+    if(!e.alive) continue;
+    e.wanderTimer -= dt;
+    if(e.wanderTimer <= 0 && !e.locked){
+      e.wanderTimer = 900 + Math.random() * 1400;
+      e.targetX = randRange(60, WORLD_WIDTH - 60);
+      e.targetY = randRange(240, 560);
+      const len = Math.hypot(e.targetX - e.x, e.targetY - e.y) || 1;
+      e.vx = ((e.targetX - e.x) / len) * e.speed;
+      e.vy = ((e.targetY - e.y) / len) * e.speed;
+    }
+    if(!e.locked && state.activeEnemyId !== e.id){
+      e.x += e.vx * (dt / 16.666) * 1.4;
+      e.y += e.vy * (dt / 16.666) * 1.4;
+      e.x = clamp(e.x, 20, WORLD_WIDTH - 20);
+      e.y = clamp(e.y, 220, 560);
+    }
+    e.attackTimer = Math.max(0, e.attackTimer - dt * 0.15);
+    if(e.deadTimer > 0) e.deadTimer -= dt;
+  }
+
+  if(!state.activeEnemyId){
+    const target = state.enemies.find(e => e.alive && e.deadTimer <= 0 && Math.hypot(e.x - p.x, e.y - p.y) < 48);
+    if(target) startBattle(target);
+  }
+
+  const active = state.enemies.find(e => e.id === state.activeEnemyId && e.alive) || null;
+  if(active){
+    active.x = clamp(active.x, 20, WORLD_WIDTH - 20);
+    active.y = clamp(active.y, 220, 560);
+
+    if(p.attackTimer >= p.attackInterval){
+      p.attackTimer = 0;
+      active.hp -= p.dmg;
+      spawnDamageText(active.x, active.y - active.h * 0.5, p.dmg, false);
+      if(active.hp <= 0){
+        active.hp = 0;
+        active.alive = false;
+        endBattle(active, true);
+      }
+    }
+
+    active.attackTimer += dt;
+    if(active.attackTimer >= 300 && active.alive){
+      active.attackTimer = 0;
+      const dmg = getDamageTaken(active.dmg);
+      p.hp -= dmg;
+      spawnDamageText(p.x, p.y - p.h, dmg, false);
+      p.invuln = 120;
+
+      if(p.hp <= 0){
+        p.hp = p.maxHp;
+        p.x = WORLD_WIDTH / 2;
+        p.y = 540;
+        p.xp = Math.floor(p.xp * 0.7);
+        p.gold = Math.floor(p.gold * 0.8);
+        pushLog('やられたので戻された', 'bad');
+        endBattle(active, false);
+      }
+    }
+  }
+
+  state.damageTexts.forEach(t => {
+    t.y += t.vy * (dt / 16.666);
+    t.life -= dt;
+  });
+  state.damageTexts = state.damageTexts.filter(t => t.life > 0);
+
+  state.spawnTimer += dt;
+
+  let aliveCount = state.enemies.filter(e => e.alive).length;
+
+  while(aliveCount < MAX_ENEMIES && state.spawnTimer >= SPAWN_INTERVAL){
+    state.spawnTimer -= SPAWN_INTERVAL;
+
+    const type = state.mapIndex === 3
+      ? randChoice(maps[3].spawn)
+      : maps[state.mapIndex].spawn[0];
+
+    let x = randRange(60, WORLD_WIDTH - 60);
+    let y = randRange(240, 560);
+
+    state.enemies.push(spawnEnemy(type, x, y));
+    aliveCount++;
+  }
+}
+
+function draw(){
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width;
+  const H = canvas.height;
+  const cam = state.cameraX || 0;
+  const map = maps[state.mapIndex];
+
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0, map.bg[0]);
+  bg.addColorStop(1, map.bg[1]);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle = 'rgba(15,20,38,.85)';
+  ctx.fillRect(0, 570*dpr, W, 150*dpr);
+
+  ctx.strokeStyle = 'rgba(255,255,255,.05)';
+  const gridStep = 80 * dpr;
+  const start = -((cam * dpr) % gridStep);
+  for(let x = start; x < W; x += gridStep){
+    ctx.beginPath();
+    ctx.moveTo(x, 570*dpr);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+
+  const zoneX = -cam * dpr;
+  const zoneW = WORLD_WIDTH * dpr;
+  ctx.fillStyle = 'rgba(255,255,255,.05)';
+  ctx.fillRect(zoneX, 120*dpr, zoneW, 8*dpr);
+  ctx.fillStyle = 'rgba(255,255,255,.12)';
+  ctx.font = `${14*dpr}px system-ui`;
+  ctx.fillText(map.name, zoneX + 8*dpr, 110*dpr);
+
+  for(const e of state.enemies){
+    if(!e.alive) continue;
+    const x = (e.x - cam) * dpr;
+    const y = e.y * dpr;
+    const w = e.w * dpr;
+    const h = e.h * dpr;
+    const barW = Math.max(42*dpr, w);
+    if(e.flash > 0) e.flash -= 16;
+
+    ctx.fillStyle = '#fff';
+    ctx.font = `${12*dpr}px system-ui`;
+    ctx.fillText(e.name, x - barW/2, y - h - 18*dpr);
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(x - barW/2, y - h - 12*dpr, barW, 8*dpr);
+    ctx.fillStyle = '#6ee7a8';
+    ctx.fillRect(x - barW/2, y - h - 12*dpr, barW * Math.max(0, e.hp / e.maxHp), 8*dpr);
+    ctx.fillStyle = e.flash > 0 ? '#fff' : e.color;
+    ctx.fillRect(x - w/2, y - h, w, h);
+
+    if(state.activeEnemyId === e.id){
+      ctx.strokeStyle = 'rgba(122,162,255,.9)';
+      ctx.lineWidth = 2*dpr;
+      ctx.strokeRect(x - w/2 - 4*dpr, y - h - 4*dpr, w + 8*dpr, h + 8*dpr);
+    }
+  }
+
+  const p = state.player;
+  const px = (p.x - cam) * dpr;
+  const py = p.y * dpr;
+  const pw = p.w * dpr;
+  const ph = p.h * dpr;
+
+  ctx.fillStyle = p.invuln > 0 ? 'rgba(122,162,255,.95)' : '#7aa2ff';
+  ctx.fillRect(px - pw/2, py - ph, pw, ph);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(px - 8*dpr, py - 42*dpr, 16*dpr, 12*dpr);
+  ctx.fillStyle = '#d6e3ff';
+  if(p.facing === 1) ctx.fillRect(px + 10*dpr, py - 34*dpr, 18*dpr, 5*dpr);
+  else ctx.fillRect(px - 28*dpr, py - 34*dpr, 18*dpr, 5*dpr);
+
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(20*dpr, 20*dpr, 260*dpr, 16*dpr);
+  ctx.fillStyle = '#6ee7a8';
+  ctx.fillRect(20*dpr, 20*dpr, 260*dpr * Math.max(0, p.hp / p.maxHp), 16*dpr);
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.strokeRect(20*dpr, 20*dpr, 260*dpr, 16*dpr);
+  ctx.fillStyle = '#fff';
+  ctx.font = `${12*dpr}px system-ui`;
+  ctx.fillText(`HP ${formatBig(p.hp)} / ${formatBig(p.maxHp)}`, 26*dpr, 32*dpr);
+
+  state.damageTexts.forEach(t => {
+    const alpha = t.life / 800;
+    const x = (t.x - cam) * dpr;
+    const y = t.y * dpr;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = t.isCrit ? '#ff3b3b' : '#ffffff';
+    ctx.font = `${(t.isCrit ? 22 : 18) * dpr}px system-ui`;
+    ctx.fillText(formatBig(t.value), x, y);
+    ctx.restore();
+  });
+}
+
+function loop(now){
+  const dt = Math.min(40, now - state.lastTime);
+  state.lastTime = now;
+
+  update(dt);
+
+  renderHUD(); // ← ★これを追加（超重要）
+
+  draw();
+  requestAnimationFrame(loop);
+}
+function updateKeyboardAndModalToggle(e){
+  if(e.key === 'i' || e.key === 'I') toggleModal(inventoryModal, renderInventoryModal);
+  if(e.key === 'm' || e.key === 'M') toggleModal(mapModal, renderMapModal);
+  if(e.key === 't' || e.key === 'T') toggleModal(fusionModal, renderFusionModal);
+  if(e.key === 'y' || e.key === 'Y') toggleModal(shopModal, renderShopModal);
+  if(mapModal.style.display === 'flex' && e.key >= '1' && e.key <= '4') setMap(Number(e.key) - 1);
+}
+
+window.addEventListener('keydown', (e)=>{
+  state.keys[e.key] = true;
+  updateKeyboardAndModalToggle(e);
+});
+window.addEventListener('keyup', (e)=>{ state.keys[e.key] = false; });
+window.addEventListener('beforeunload', saveGame);
+setInterval(saveGame, 5000);
+
+const btnMap = {
+  openInvBtn: () => toggleModal(inventoryModal, renderInventoryModal),
+  openMapBtn: () => toggleModal(mapModal, renderMapModal),
+  openFusionBtn: () => toggleModal(fusionModal, renderFusionModal),
+  openShopBtn: () => toggleModal(shopModal, renderShopModal),
+};
+for(const [id, fn] of Object.entries(btnMap)){
+  document.getElementById(id).addEventListener('click', fn);
+}
+
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', ()=>closeModal(document.getElementById(btn.dataset.close)));
+});
+
+centerMsg.style.display = 'flex';
+const loaded = loadGame();
+if(loaded){
+  pushLog('セーブデータを読み込みました', 'good');
+}else{
+  pushLog('新規ゲームを開始', 'good');
+  pushLog('Iでインベントリ、Mでマップ、Tで合成、Yでショップ', '');
+  pushLog('敵はマップ内をランダム移動する', '');
+}
+beginGame();
+saveGame();
+</script>
+</body>
+</html>
