@@ -281,7 +281,7 @@ const maxLv = {D:25, C:50, B:75, A:100, S:150};
 const hpMult = {D:1.5, C:2, B:2.5, A:3, S:4};
 const shieldCut = {D:0.20, C:0.35, B:0.50, A:0.70, S:0.85};
 
-const WORLD_WIDTH = 5000;
+const WORLD_WIDTH = 3000;
 const MAX_ENEMIES = 20;
 const SPAWN_INTERVAL = 1500;
 
@@ -290,6 +290,8 @@ const maps = [
   {name:'ムラ2', bg:['#4f361f','#1f1820'], spawn:['bot2'], zone:[0, WORLD_WIDTH]},
   {name:'ムラ3', bg:['#4f1f1f','#200f13'], spawn:['bot3'], zone:[0, WORLD_WIDTH]},
   {name:'ボスの城', bg:['#2b2b2b','#0d0d12'], spawn:['bot1','bot2','bot3','boss'], zone:[0, WORLD_WIDTH]},
+  {name:'Gムラムラ', bg:['#92904f','#91192c'], spawn:['Grandebot1','Grandebot2'], zone:[0, WORLD_WIDTH]},
+  {name:'C=Forest', bg:['#00E9DD'], spawn:['XPMachine','GMachine'], zone:[0, WORLD_WIDTH]},
 ];
 
 const enemyData = {
@@ -297,6 +299,10 @@ const enemyData = {
   bot2:{name:'bot2', hp:50000, dmg:300, xp:2000, gold:500, color:'#ff9f1c', speed:1.0},
   bot3:{name:'bot3', hp:200000, dmg:1000, xp:10000, gold:2000, color:'#ff3b3b', speed:0.8},
   boss:{name:'boss', hp:3000000, dmg:10000, xp:114514, gold:10000, color:'#050505', speed:0.62},
+  Grandebot1:{name:'Grandebot1', hp:5000000, dmg:100000, xp:200000, gold:20000, color:'#20d000', speed:0.8},
+  Grandebot2:{name:'Grandebot2', hp:9000000, dmg:450000, xp:364364, gold:50000, color:'#1c8214', speed:0.8},
+  XPMachine:{name:'XPMachine', hp:15000000, dmg:10000, xp:500000, gold:1000, color:'#91fc88', speed:0.8},
+  GMachine:{name:'GMachine', hp:40000000, dmg:4000, xp:3000, gold:200000, color:'#d0a900', speed:0.8},
 };
 
 function uid(){
@@ -468,7 +474,7 @@ function loadGame(){
     if(!raw) return false;
     const parsed = JSON.parse(raw);
 
-    state.mapIndex = clamp(Number(parsed.mapIndex ?? 0), 0, 3);
+    state.mapIndex = clamp(Number(parsed.mapIndex ?? 0), 0, maps.length - 1);
     state.cameraX = Number(parsed.cameraX ?? 0);
     if(parsed.player && typeof parsed.player === 'object') Object.assign(state.player, parsed.player);
 
@@ -1200,7 +1206,10 @@ function updateKeyboardAndModalToggle(e){
   if(e.key === 'm' || e.key === 'M') toggleModal(mapModal, renderMapModal);
   if(e.key === 't' || e.key === 'T') toggleModal(fusionModal, renderFusionModal);
   if(e.key === 'y' || e.key === 'Y') toggleModal(shopModal, renderShopModal);
-  if(mapModal.style.display === 'flex' && e.key >= '1' && e.key <= '4') setMap(Number(e.key) - 1);
+  if(mapModal.style.display === 'flex' && !isNaN(e.key)){
+  const index = Number(e.key) - 1;
+  if(index >= 0 && index < maps.length) setMap(index);
+} setMap(Number(e.key) - 1);
 }
 
 window.addEventListener('keydown', (e)=>{
