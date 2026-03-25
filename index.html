@@ -31,9 +31,22 @@
     box-shadow:0 12px 30px rgba(0,0,0,.35)
   }
   .topbar{
-    left:12px;top:12px;display:flex;gap:10px;flex-wrap:wrap;
-    padding:10px 12px;max-width:min(100vw - 24px, 1100px)
-  }
+  left:12px;
+  top:12px;
+  display:flex;
+  gap:10px;
+
+  /* ❌ wrap削除 */
+  flex-wrap:nowrap;
+
+  padding:10px 12px;
+
+  /* 🔥 横スクロールにする */
+  overflow-x:auto;
+
+  /* 🔥 最低幅（好きな数値でOK） */
+  min-width:1200px;
+}
   .pill{
     background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.07);
