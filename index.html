@@ -945,7 +945,6 @@ function renderMapModal(){
     tile.innerHTML = `
       <div class="title">${m.name} ${state.mapIndex === i ? '（現在）' : ''}</div>
       <div class="sub">出現敵: ${m.spawn.join(' / ')}</div>
-      <div class="sub">歩きでは移動できない。ここから切り替え。</div>
       <div class="actions"><button class="btn smallBtn">移動</button></div>
     `;
     tile.querySelector('button').addEventListener('click', ()=>setMap(i));
