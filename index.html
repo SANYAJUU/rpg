@@ -317,6 +317,7 @@ const maps = [
   {name:'Gムラムラ', bg:['#92904f','#91192c'], spawn:['Grandebot1','Grandebot2'], zone:[0, WORLD_WIDTH]},
   {name:'C=Forest', bg:['#00E9DD','#10f9eD'], spawn:['XPMachine','GMachine'], zone:[0, WORLD_WIDTH]},
   {name:'GrandeCaladown', bg:['#dfdfdf','#eeffee'], spawn:['bot3','Grandebot2','Grandeboss'], zone:[0, WORLD_WIDTH]},
+  {name:'ONE Final Lake', bg:['#333333','#333333'], spawn:['Slime1','GrandebossAlpha'], zone:[0, WORLD_WIDTH]},
 ];
 
 const enemyData = {
@@ -329,6 +330,8 @@ const enemyData = {
   XPMachine:{name:'XPMachine', hp:15000000, dmg:10000, xp:500000, gold:1000, color:'#91fc88', speed:0.8},
   GMachine:{name:'GMachine', hp:40000000, dmg:4000, xp:3000, gold:200000, color:'#d0a900', speed:0.8},
   Grandeboss:{name:'Grandeboss', hp:100000000, dmg:1000000, xp:2000000, gold:2000000, color:'#114514', speed:0.5},
+  GrandebossAlpha:{name:'GrandebossAlpha', hp:3000000000, dmg:20000000, xp:10000000, gold:50000000, color:'#114514', speed:1},
+  Slime1:{name:'Slime1', hp:50000000, dmg:5000000, xp:3000000, gold:1000000, color:'#33ff33', speed:1.3},
 };
 
 function uid(){
@@ -598,6 +601,12 @@ function addDropFromEnemy(enemyType){
   
   }else if(enemyType === 'Grandeboss'){
     rarity = Math.random() < 0.1 ? 'SS' : 'S';
+
+  }else if(enemyType === 'GrandebossAlpha'){
+    rarity = Math.random() < 0.1 ? 'SSS' : 'SS';
+
+  }else if(enemyType === 'Slime1'){
+    rarity = 'S';
   }
 
   const listName = randChoice(['weapons','helmets','armors','shields']);
@@ -673,6 +682,7 @@ function spawnEnemy(type, x, y){
     type === 'Grandebot1' ? 40 :
     type === 'Grandebot2' ? 45 :
     type === 'Grandeboss' ? 65 :
+    type === 'GrandebossAlpha' ? 70 :
     28;
   const h = w;
   return {
@@ -777,7 +787,7 @@ function fuseItems(listName, rarity){
     C: 4,
     B: 5,
     A: 7,
-    S:10
+    S: 10
   };
 
   const need = needMap[rarity];
