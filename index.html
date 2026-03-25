@@ -960,7 +960,12 @@ function beginGame(){
   }else{
     state.enemies = state.enemies.map(normalizeEnemy).filter(Boolean);
   }
-  const zone = maps[state.mapIndex].zone;
+  if(state.mapIndex >= maps.length){
+    state.mapIndex = 0;
+  }
+
+  const map = maps[state.mapIndex];
+  const zone = map.zone;
   state.player.x = clamp(state.player.x || (WORLD_WIDTH / 2), zone[0] + 20, zone[1] - 20);
   state.player.y = clamp(state.player.y || 540, 220, 560);
   state.cameraX = clamp(state.player.x - window.innerWidth / 2, 0, WORLD_WIDTH - window.innerWidth);
@@ -977,6 +982,11 @@ function beginGame(){
 function update(dt){
   const p = state.player;
   const map = maps[state.mapIndex];
+  if(!map){
+    console.error("mapが存在しない:", state.mapIndex);
+    state.mapIndex = 0;
+    return;
+  }
   const leftBound = map.zone[0] + 20;
   const rightBound = map.zone[1] - 20;
 
@@ -1080,9 +1090,11 @@ function update(dt){
   while(aliveCount < MAX_ENEMIES && state.spawnTimer >= SPAWN_INTERVAL){
     state.spawnTimer -= SPAWN_INTERVAL;
 
+    const currentMap = maps[state.mapIndex] || maps[0];
+
     const type = state.mapIndex === 3
-      ? randChoice(maps[3].spawn)
-      : maps[state.mapIndex].spawn[0];
+      ? randChoice(currentMap.spawn)
+      : currentMap.spawn[0];
 
     let x = randRange(60, WORLD_WIDTH - 60);
     let y = randRange(240, 560);
