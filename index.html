@@ -665,7 +665,14 @@ function spawnDamageText(x, y, value, isCrit=false){
 
 function spawnEnemy(type, x, y){
   const base = enemyData[type];
-  const w = type === 'boss' ? 54 : type === 'bot3' ? 40 : type === 'bot2' ? 34 : 28;
+  const w = 
+    type === 'bot1' ? 30 :        
+    type === 'bot2' ? 35 : 
+    type === 'bot3' ? 40 :
+    type === 'boss' ? 55 :
+    type === 'Grandebot1' ? 40 :
+    type === 'Grandebot2' ? 45 :
+    type === 'Grandeboss' ? 65 :
   const h = w;
   return {
     id: uid(),
